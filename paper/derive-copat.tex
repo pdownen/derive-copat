@@ -257,7 +257,7 @@ last, and is the same as \scm|z| elsewhere:
   [  (diag x y z)             = z])
 \end{scheme}
 So that \scm|(diag 50 60 quad)| represents $((50, 2), (3, 60))$.  Notice the use
-of the third ``fall-through'' case which is used whenever the fist two cases
+of the third ``fall-through'' case which is used whenever the first two cases
 don't apply.  Crucially, the context that this fall-through case matches is
 \emph{less specified} than the earlier cases, so
 \scm|(((diag quad 50 60)  `snd)  `fst)| needs to simplify to
@@ -274,7 +274,7 @@ elaborates all four cases:
 
 As the notation suggests, we can understand this code through equational
 reasoning---replacing call sites matching the left-hand side with the
-right-hand side.  However, it is no so obvious how to convert this into a
+right-hand side.  However, it is not so obvious how to convert this into a
 fully-defined operational semantics capable of calculating the result of any
 program.  This becomes even more challenging when taking into account other
 forms of higher-order composition that can be performed at run-time: multiple
@@ -292,7 +292,7 @@ semantics into another!  Danvy's functional correspondence
 transformations to derive semantic artifacts---operational semantics, abstract
 machines, and continuation-passing style transformations---from one another in
 a way that is correct by construction.  In other words, we can (mostly
-mechanically) generate a functional and correct operational semantics directly
+mechanically) generate functional and correct operational semantics directly
 from the macro definition implementing copatterns in \cite{CoScheme}.  Yet, this
 is not just an exercise of turning the crank.  Doing so reveals connections
 between copattern matching with delimited control and a form of first-class
@@ -318,8 +318,8 @@ matching.  More specifically, our technical contributions are as follows:
   \item the options for how to handle match failure.
   \end{enumerate*}
   The CPS translation corresponds to the macro definition in \cite{CoScheme},
-  and shows that the compositional calculus and is a conservative extension of
-  the monolithic one.
+  and shows that the compositional calculus is a conservative extension of the
+  monolithic one.
 \item (\Cref{sec:control-copat}) Going in reverse, we walk back from the CPS
   translation of compositional copatterns and derive the missing semantic
   artifacts---an abstract machine and small-step operational semantics---which
@@ -340,7 +340,7 @@ code, by infusing it with some techniques from the object-oriented paradigm.
 Let's consider how to write an interpreter for arithmetic expressions in Scheme.%
 \footnote{The library defining the Scheme and Racket macros used in these
   examples can be found at \url{https://github.com/pdownen/CoScheme}.}%
-A simple way to represent expressions are as trees where the nodes start with
+A simple way to represent expressions is as trees where the nodes start with
 the (symbolic) name of an operator followed by sub-expressions, and leaves are
 just number literals.  For a simple language with only addition and
 multiplication, we can represent the operation nodes by the patterns
@@ -404,7 +404,7 @@ the new behavior.  The correct way to extend the arithmetic evaluator looks like
 \end{scheme}
 where the tag \scm|`compose| denotes an implicit inherited method of objects
 that combines the clauses vertically in an either-or fashion.  That way, it
-correctly calculates answer to both old expressions
+correctly calculates answers to both old expressions
 \scm|(arith-ext `eval expr0) = 7| and new ones
 \scm|(arith-ext `eval expr1) = -5|.  Textually, it is as if the underlying
 runtime system did the copy-and-pasting for us, behaving exactly like the
@@ -435,19 +435,19 @@ So we can add as many operators as we want to the evaluator without modifying
 any old code. Fantastic!
 
 However, what if we tried to perform a more radical change, such as extending
-arithmetic to algebraic expressions with variables in them.  When evaluating a
+arithmetic to algebraic expressions with variables in them?  When evaluating a
 variable, we need access to a mapping from variables to numbers to look up its
 value.  Unfortunately, horizontally composing clauses together will no longer
 suffice.  Typically, we would need to thread this environment around in every
-other case where its not needed, requiring careful surgery of the old code.
+other case where it's not needed, requiring careful surgery of the old code.
 
 Instead, we can take a page out of the object-oriented book and think about
-objects which ``encapsulate'' additional information within them.  For instance,
+objects that ``encapsulate'' additional information within them.  For instance,
 an object might hold onto exactly the variable-to-number environment we need.
 Fortunately, we already have all the tools at our disposal to get the job
 done---without needing to introduce the baggage of a whole class system.
 Rather, we can model lightweight ``classes'' \ala JavaScript as functions
-(representing the constructor) that returns an \scm|object|.  For our needs, the
+(representing the constructor) that return an \scm|object|.  For our needs, the
 simplest class of objects containing a given variable-to-number environment are
 defined by a single accessor method:
 \begin{scheme}
@@ -552,7 +552,7 @@ but all without touching any old code!
 \end{figure}
 
 In order to derive a semantics that can handle the types of open recursion and
-composition of partial functions from \cref{sec:example}, lets consider a small
+composition of partial functions from \cref{sec:example}, let's consider a small
 core calculus of copattern matching in \cref{fig:block-copat-spec}.  This
 calculus has bound variables ($x$), applications of arguments (as $M~N$), and
 projecting a specific index tagged $X$ (as $M~X$).  The only two other features
@@ -562,9 +562,9 @@ are:
   late-bound self-reference, we follow a model close to the Python programming
   language.  The ``self'' pointer is given explicitly as the first argument to a
   function call, and so calling a self-recursive function begins with an
-  explicit punctuation (written $M.$) signaling that a copy of the same
-  function should be passed first (as $M~M$).  This step is captured by the
-  self-duplicating $\delta$ rule.
+  explicit punctuation (written $M.$) signaling that a copy of the same function
+  should be passed first (as $M~M$).  The self-duplicating $\delta$ rule
+  captures this step.
 \item \emph{Copattern $\lambda$s:} Instead of just taking a single parameter,
   $\lambda$-abstractions are built out of a sequence of \emph{options} ($O$) for
   mapping \emph{copatterns} ($L$) on the left-hand side to a new term on the
@@ -582,9 +582,9 @@ are:
 \begin{example}
 \label{ex:count}
   
-To see how recursion and matching is modeled by this core calculus, consider
-this infinite stream object (with a $\mathit{Head}$ and $\mathit{Tail}$) that
-counts $\mathit{From}$ an initial number:
+To see how this core calculus models recursion and matching, consider this
+infinite stream object (with a $\mathit{Head}$ and $\mathit{Tail}$) that counts
+$\mathit{From}$ an initial number:
 \begin{align*}
   % \mathit{nats} &= \mathit{count}.From~0
   % \\
@@ -854,7 +854,7 @@ iter (Asked r q) = case reduce r q of
 
 The equational axioms $\beta$ and $\delta$ can specify \emph{why} an answer is
 correct, but they don't give an algorithmic method showing \emph{how} to get
-there.  So let's writing an algorithm!
+there.  So let's write an algorithm!
 
 The first step is to represent syntax trees as a concrete data structure, which
 we can do in Haskell as shown in \cref{fig:block-syntax-code}.  We use infix
@@ -862,7 +862,7 @@ constructors \hs|m:*:n| and \hs|m:@:x| for function application ($M~N$) and
 indexing ($M~X$), respectively, and the other constructors are for variables
 (\hs|Var "x"| as $x$) the ``dot'' operator (\hs|Dot m| as $M.$) and copattern
 $\lambda$-objects (\hs|Obj [l :-> m, ...]| as $\lambda\{L \to M \mid \dots\}$).
-Copatterns are built using similar infix constructors and ended by a no-op
+Copatterns are built using similar infix constructors and end with no-op
 \hs|Nop|, forming a stylized list that we can concatinate using \hs|<>|.  Of
 note, we abstract variable identifiers and projection indexes as generic types
 \hs|a| and \hs|i|, respectively, which will come in handy several times.  Already,
@@ -1017,13 +1017,13 @@ refocusing in place.
 From there, it is a matter of applying standard program transformations: loop
 fusion, compressing corridor transitions, and deforesting intermediate data
 structures.  In order to fuse \hs|reduce| and \hs|comatch| in with the
-small-step interpreter, we need to give reduction the same treatment as search
-to put it into a tail-recursive form: CPS transforming, defunctionalizing
-\cite{DefinitionalInterpreters}, and compressing corridor transitions.  As a
-simplification, we can notice that the contexts produced by defunctionalization
-are isomorphic to substitution environments, whose order is irrelevant (assuming
-distinct names).  We also modify copattern matching to immediately substitute
-when available, since substitution reassociates.
+small-step interpreter, we need to give reduction the same treatment as
+\hs|search| to put it into a tail-recursive form: CPS transforming,
+defunctionalizing \cite{DefinitionalInterpreters}, and compressing corridor
+transitions.  As a simplification, we can notice that the contexts produced by
+defunctionalization are isomorphic to substitution environments, whose order is
+irrelevant (assuming distinct names).  We also modify copattern matching to
+substitute immediately when available, since substitution reassociates.
 \begin{lemma}
   \label{thm:block-subst-reassoc}
   \hs|m // (env ++ env') = (m // env) // env'|
@@ -1247,8 +1247,8 @@ handle the non-structural recursion for under-application in \hs|comatch|):
   Typically, we would keep going and refunctionalize continuations---in this
   case, \hs|Question|s---into first-class functions.  This step becomes
   difficult in cases like ours, compounded next in \cref{sec:refactor}, which is
-  not in the image of the ordinary defunctionalization.  Refunctionalization can
-  be made total through the use of copattern matching on
+  not in the image of ordinary defunctionalization.  Refunctionalization can be
+  made total by using copattern matching on
   codata~\cite{RefunctionalizationCopatterns}---but that verges on begging the
   question by defining copatterns in terms of copatterns.  But not to worry!
   The CPS transformation given here corresponds to a well-known and well-behaved
@@ -1342,7 +1342,7 @@ our language.
 
 One of the awkward aspects of the semantics so far has to do with unresolved
 matching, when a copattern is expecting more information than the context
-provides.  Currently, there is no way to tell with a question is ``done,'' or if
+provides.  Currently, there is no way to tell when a question is ``done,'' or if
 we are missing some part of the context.  As a consequence, the CPS
 transformation has to handle cases of an empty stack by trying again to consume
 more continuation.  This leads to the complex recursive structure of copatterns
@@ -1548,10 +1548,10 @@ so that
 $\mathit{compose}~\mathtt{object}\{O\}~\mathtt{object}\{O'\} =
 \mathtt{object}\{O \mid O'\}$.
 
-% Syntactic sugar: $\Raise = \ans k \to k$, so that $\den{\Raise} = \lambda k. k$.
-% This is useful for recognizing answers of the form $E[\Raise]\ans$ which
-% corresponds to raising a data structure corresponding to question formed by
-% refocusing the evaluation context $E$.
+% Syntactic sugar: $\Raise = \ans k \to k$, so that
+% $\den{\Raise} = \lambda k. k$.  This is useful for recognizing answers of the
+% form $E[\Raise]\ans$ which corresponds to raising a data structure
+% corresponding to the question formed by refocusing the evaluation context $E$.
 
 \subsection{Third refactor: Eliminating redundancy}
 
@@ -1571,8 +1571,8 @@ $\mathit{compose}~\mathtt{object}\{O\}~\mathtt{object}\{O'\} =
 % \end{align*}
 % Translating terms as functions from questions to answers:
 
-At this point, there is some redundancy with the way the CPS translation handles
-options.  Note that deriving CPS transformation for the simplified option
+At this point, there is some redundancy in the way the CPS translation handles
+options.  Note that deriving a CPS transformation for the simplified option
 handler $O \ask M$ gives:
 \begin{align*}
   Opt\den{O \ask M} &= \lambda k.~ Opt\den{O} ~ k ~ \den{M} ~ k
@@ -2337,15 +2337,6 @@ tools to understand source programs directly.  These artifacts still have
 untapped potential to explore for understanding compositional copatterns, such
 as extracting a type system from the CPS
 \cite{FunctionalAbstractionTypedContexts}.
-
-% x \\
-% x \\
-% x \\
-% x \\
-% x \\
-% y \\
-% y \\
-
 
 
 %%
