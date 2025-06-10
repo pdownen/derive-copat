@@ -1,0 +1,42 @@
+name:                derive-copat
+version:             0.1.0.0
+github:              "pdownen/derive-copat"
+author:              "Paul Downen"
+maintainer:          "paul@pauldownen.com"
+copyright:           "Copyright (c) 2025 Paul Downen"
+
+extra-source-files:
+- README.md
+- CHANGELOG.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+category:            Compilers/Interpreters
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/pdownen/derive-copat#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- containers
+- mtl
+- partial-order
+
+# ghc-options:
+# - -Wall
+
+library:
+  source-dirs: src
+
+tests:
+  derive-copat-test:
+    main:                Main.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - derive-copat

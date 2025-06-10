@@ -1,0 +1,602 @@
+\section{Postscript: Efficiently Passing Environments}
+\label{sec:environment-machine}
+
+%% Help LaTeX place figures effectively by allowing them all as early as possible
+\begin{figure}
+\centering
+\renewcommand{\basicstylesize}{\footnotesize}
+\begin{haskell}
+type ClosEnv i a = Env a (Closure i a)
+type ClosQuestion i a
+  = Copattern i (Closure i a)
+data Closure i a
+  = (:/:) { openTerm  :: Term i a,
+            staticEnv :: ClosEnv i a }
+
+data Redex i a
+  = Introspect (Term i a) (ClosEnv i a)
+  | Respond [Option i a] (ClosEnv i a)
+  | FreeVar a (ClosEnv i a)
+
+data Reduct i a
+  = Reduced (Closure i a)
+  | Unhandled
+  | Unknown a
+
+reduce :: (Eq i, Eq a)
+       => Redex i a -> ClosQuestion i a
+       -> Followup i a
+reduce (Introspect m env) q
+  = Next (Reduced $ m :*: m :/: env) q
+reduce (FreeVar x env)    q
+  = case lookup x env of
+  Nothing -> Next (Unknown x) q
+  Just m  -> Next (Reduced m) q
+reduce (Respond (lhs :-> rhs : ops) env) q
+  = case suffix match of
+      Followup q'  ->
+        Next (Reduced $ rhs:/:env'++env) q'
+      Unasked lhs' ->
+        More lhs' (rhs:/:env') ops env q
+      Mismatch _ _ ->
+        reduce (Respond ops env) q
+  where match = comatch lhs q
+        env'  = prefix match
+reduce (Respond [] env)   q
+  = Next Unhandled q
+
+data Decomp i a
+  = Asked (Redex i a) (ClosQuestion i a)
+
+decomp  :: Closure i a -> Decomp i a
+recomp  :: Term i a -> Question i a -> Term i a
+refocus :: Closure i a -> ClosQuestion i a
+        -> Decomp i a
+
+eval :: (Eq a, Eq i) => Term i a -> Answer i a
+eval m = iter $ decomp (m :/: [])
+
+iter :: (Eq a, Eq i) => Decomp i a -> Answer i a
+iter (Asked r q) = case reduce r q of
+  Next (Reduced m)     k -> iter $ refocus m k
+  Next (Unknown x)     k -> Stuck x k
+  Next Unhandled       k -> Raise k
+  More lhs rhs ops env k -> Under lhs rhs ops env k
+\end{haskell}
+\caption{Small-step reduction with an environment}
+\label{fig:block-env-reduce-code}
+\end{figure}
+
+\begin{figure}
+\centering
+\renewcommand{\basicstylesize}{\footnotesize}
+\begin{haskell}
+data Answer i a
+  = Under (Copattern i a) (Closure i a)
+          [Option i a] (ClosEnv i a)
+          (ClosQuestion i a)
+  | Raise (ClosQuestion i a)
+  | Stuck a (ClosQuestion i a)
+
+eval :: (Eq a, Eq i) => Term i a -> Answer i a
+eval m = refocus m [] Nop
+
+refocus :: (Eq a, Eq i) => Term i a
+        -> ClosEnv i a -> ClosQuestion i a
+        -> Answer i a
+refocus (Var x)   env k = case lookup x env of
+  Nothing -> Stuck x k
+  Just (m :/: env)  -> refocus m env k
+refocus (Dot m)   env k
+  = refocus m env $ (m :/: env) :* k
+refocus (Obj os)  env k = case os of
+  lhs :-> rhs : os -> comatch lhs k [] rhs os env k
+  []               -> Raise k
+refocus (m :*: n) env k
+  = refocus m env $ (n :/: env) :* k
+refocus (m :@: i) env k
+  = refocus m env $ i :@ k
+
+comatch :: (Eq a, Eq i) => Copattern i a
+        -> ClosQuestion i a -> ClosEnv i a
+        -> Term i a -> [Option i a] -> ClosEnv i a
+        -> ClosQuestion i a
+        -> Answer i a
+comatch Nop      cxt      env' rhs _  env _
+  = refocus rhs (env' ++ env) cxt
+comatch lhs      Nop      env' rhs os env q
+  = Under lhs (rhs :/: env') os env q
+comatch (x:*lhs) (y:*cxt) env' rhs os env q
+  = comatch lhs cxt ((x,y):env') rhs os env q
+comatch (i:@lhs) (j:@cxt) env' rhs os env q
+  | i == j = comatch lhs cxt env' rhs os env q
+comatch lhs      cxt      _    _   os env q
+  = refocus (Obj os) env q
+\end{haskell}
+\caption{Environment-passing, tail-recursive abstract machine interpreter.}
+\label{fig:block-env-machine-code}
+\end{figure}
+
+\begin{figure}
+\centering
+\renewcommand{\basicstylesize}{\footnotesize}
+\begin{haskell}
+data Answer i a
+  = Final   (CPSQuestion i a)
+  | Stuck   [CPSTerm i a] a (CPSQuestion i a)
+  | CoStuck [CPSTerm i a] a
+
+type CPSQuestion i a = Copattern i (CPSArg i a)
+type CPSResponse i a = Answer i a
+type CPSTerm i a = CPSQuestion i a -> CPSResponse i a
+type CPSOption i a = CPSTerm i a -> CPSTerm i a
+
+newtype CPSArg i a
+  = Arg { useArg :: CPSTerm i a }
+
+data CPSSub i a = CPST (CPSTerm i a)
+                | CPSQ (CPSQuestion i a)
+type CPSEnv i a = Env a (CPSSub i a)
+
+run :: (Eq a, Eq i) => Response i a -> Answer i a
+run r = (response r [])
+
+eval :: (Eq i, Eq a) => Term i a
+     -> Answer i a
+eval m = (term m []) Nop
+
+try :: (Eq i, Eq a) => Option i a -> Answer i a
+try o = (option o []) Nop (term Raise []) Nop
+
+response :: (Eq a, Eq i) => Response i a
+         -> CPSEnv i a -> Answer i a
+response (Splat k) env = case lookup k env of
+  Just (CPSQ q) -> Final q
+  _             -> CoStuck [] k 
+response (End)     env = Final Nop
+response (m :!: r) env
+  = (term m env) <!> (response r env)
+
+(<!>) :: CPSTerm i a -> Answer i a
+      -> Answer i a
+f <!> Final r      = f r
+f <!> Stuck gs x q = Stuck (f : gs) x q
+f <!> CoStuck gs q = CoStuck (f : gs) q
+
+term :: (Eq a, Eq i) => Term i a -> CPSEnv i a
+     -> CPSTerm i a
+term (Var x)   env = case lookup x env of
+  Just (CPST m) -> m
+  _             -> Stuck [] x
+term (Dot m)    env
+  = \k -> (term m env) (Arg (term m env) :* k)
+term (m :*: n)  env
+  = \k -> (term m env) (Arg (term n env) :* k)
+term (m :@: i)  env = \k -> (term m env) (i :@ k)
+term (Raise)    env = \k -> Final k
+term (q :!-> r) env
+  = \k -> (response r ((q, CPSQ k) : env))
+term (o :?: m)  env
+  = \k -> (option o env) k (term m env) k
+
+option :: (Eq i, Eq a) => Option i a -> CPSEnv i a
+       -> CPSQuestion i a -> CPSOption i a
+option (x :*-> o) env = \q f -> \case
+  (y :* k) -> (option o env') q f k
+    where env' = (x, CPST (useArg y)) : env
+  _        -> f q
+option (i :@-> o) env = \q f -> \case
+  (j :@ k) | i == j -> (option o env) q f k
+  _                 -> f q
+option (x :?-> m) env = \_ f -> (term m env')
+  where env' = (x, CPST f) : env
+\end{haskell}
+\caption{Environment and continuation-passing style translation for copatterns with nested options.}
+\label{fig:nest-env-cps-code}
+\end{figure}
+
+\begin{figure}
+\centering
+\renewcommand{\basicstylesize}{\footnotesize}
+\begin{haskell}
+data Answer i a
+  = Final   (ClosQuestion i a)
+  | Stuck   (MetaCont i a) a (ClosQuestion i a)
+  | CoStuck (MetaCont i a) a
+
+type MetaCont i a = [Closure i a]
+
+run :: (Eq a, Eq i) => Response i a -> Answer i a
+run r = delim r [] []
+
+eval :: (Eq i, Eq a) => Term i a -> Answer i a
+eval m = refocus m [] Nop []
+
+try :: (Eq i, Eq a) => Option i a -> Answer i a
+try o = comatch o [] Nop (Raise :/: []) Nop []
+
+delim :: (Eq a, Eq i)
+      => Response i a -> ClosEnv i a
+      -> MetaCont i a -> Answer i a
+delim (Splat k) env (m:/:e:s)
+  | Just (QSub q) <- lookup k env
+  = refocus m e Nop s
+delim (Splat k) env []
+  | Just (QSub q) <- lookup k env
+  = Final q
+delim (Splat k) env s
+  = CoStuck s k
+delim (End)     env (m:/:e:s)
+  = refocus m e Nop s
+delim (End)     env []
+  = Final Nop
+delim (m :!: r) env s
+  = delim r env $ (m :/: env) : s
+
+refocus :: (Eq a, Eq i) => Term i a
+        -> ClosEnv i a -> ClosQuestion i a
+        -> MetaCont i a -> Answer i a
+refocus (Var x)    env k s
+  | Just (CSub (m:/:e)) <- lookup x env
+  = refocus m e k s
+refocus (Var x)    env k s
+  = Stuck s x k
+refocus (Dot m)    env k s
+  = refocus m env ((m :/: env) :* k) s
+refocus (m :*: n)  env k s
+  = refocus m env ((n :/: env) :* k) s
+refocus (m :@: i)  env k s
+  = refocus m env (i :@ k) s
+refocus (Raise)    env k (m:s)
+  = refocus (openTerm m) (staticEnv m) k s
+refocus (Raise)    env k []
+  = Final k
+refocus (q :!-> r) env k s
+  = delim r ((q, QSub k) : env) s
+refocus (o :?: m)  env k s
+  = comatch o env k (m :/: env) k s
+
+comatch :: (Eq i, Eq a) => Option i a
+        -> ClosEnv i a -> ClosQuestion i a
+        -> Closure i a -> ClosQuestion i a
+        -> MetaCont i a -> Answer i a
+comatch (x :*-> o) env (n:*k) m q s
+  = comatch o ((x, CSub n) : env) q m k s
+comatch (i :@-> o) env (j:@k) m q s
+  | i == j = comatch o env q m k s
+comatch (x :?-> n) env k      m _ s
+  = refocus n ((x, CSub m) : env) k s
+comatch _          env _      m q s
+  = refocus (openTerm m) (staticEnv m) q s
+\end{haskell}
+\caption{Environment-passing, abstract machine interpreter for copatterns with control.}
+\label{fig:nest-env-machine-code}
+\end{figure}
+
+%% The full-page figures break the flow unless they are put together at the end
+
+\begin{figure*}
+\centering
+Refocusing / Reduction steps:
+\begin{align*}
+  \braket{M~N \cmid \sigma \cmid K}
+  &\mapsto
+  \braket{M \cmid \sigma \cmid N\clos{\sigma} ~ K}
+  &
+  \braket{M. \cmid \sigma \cmid K}
+  &\mapsto
+  \braket{M \cmid \sigma \cmid M\clos{\sigma} ~ K}
+  &
+  \braket{x \cmid \sigma \cmid K}
+  &\mapsto
+  \braket{M \cmid \sigma' \cmid K}
+  \\
+  \braket{M~X \cmid \sigma \cmid K}
+  &\mapsto
+  \braket{M \cmid \sigma \cmid X ~ K}
+  &
+  \braket{\lambda\{L \to M; \vect{O}\} \cmid \sigma \cmid K}
+  &\mapsto
+  \braket{L \cmid K \cmid \sigma \cmid M \cmid \vect{O} \cmid \sigma \cmid K}
+  &
+  &~(\asub{x}{M\clos{\sigma'}} \in \sigma)
+\end{align*}
+
+Copattern-matching steps:
+\begin{align*}
+  \braket{x ~ L \cmid N\clos{\sigma'} ~ K' \cmid \sigma \cmid M \cmid \many{O} \cmid \sigma_0 \cmid K}
+  &\mapsto
+  \braket{L \cmid K' \cmid \asub{x}{N\clos{\sigma'}},\sigma \cmid M \cmid \many{O} \cmid \sigma_0 \cmid K}
+  \\
+  \braket{X ~ L \cmid X ~ K' \cmid \sigma \cmid M \cmid \many{O} \cmid \sigma_0 \cmid K}
+  &\mapsto
+  \braket{L \cmid K' \cmid \sigma \cmid M \cmid \many{O} \cmid \sigma_0 \cmid K}
+  \\
+  \braket{\varepsilon \cmid K' \cmid \sigma \cmid M \cmid \many{O} \cmid \sigma_0 \cmid K}
+  &\mapsto
+  \braket{M \cmid \sigma \cmid K'}
+  \\
+  \braket{L \cmid \varepsilon \cmid \sigma \cmid M \cmid \many{O} \cmid \sigma_0 \cmid K}
+  &\not\mapsto
+  \qquad\qquad\qquad\qquad\qquad
+  (\text{if } L \neq \varepsilon)
+  \\
+  \braket{L \cmid K' \cmid \sigma \cmid M \cmid \many{O} \cmid \sigma_0 \cmid K}
+  &\mapsto
+  \braket{\lambda\{\many{O}\} \cmid \sigma_0 \cmid K}
+  \qquad(\text{otherwise})
+\end{align*}
+\caption{Environment-based abstract machine for calculating monolithic copatterns.}
+\label{fig:env-machine}
+\end{figure*}
+
+\begin{figure*}
+\centering
+
+Meta-continuation steps:
+\begin{align*}
+  \braket{M \ans R \cmid \sigma \cmid S}
+  &\mapsto
+  \braket{R \cmid \sigma \cmid M\clos{\sigma}; S}
+  &
+  \braket{\varepsilon \cmid \sigma \cmid M\clos{\sigma'}; S}
+  &\mapsto
+  \braket{M \cmid \sigma' \cmid \varepsilon \cmid S}
+  &
+  \braket{q \cmid \sigma \cmid M\clos{\sigma'}; S}
+  &\mapsto
+  \braket{M \cmid \sigma' \cmid \sigma(q) \cmid S}
+\end{align*}
+
+Refocusing / reduction steps:
+\begin{align*}
+  \braket{M ~ X \cmid \sigma \cmid K \cmid S}
+  &\mapsto
+  \braket{M \cmid \sigma \cmid X ~ K \cmid S}
+  \\
+  \braket{M ~ N \cmid \sigma \cmid K \cmid S}
+  &\mapsto
+  \braket{M \cmid \sigma \cmid N\clos{\sigma} ~ K \cmid S}
+  &\qquad
+  \braket{\ans q \to R \cmid \sigma \cmid K \cmid S}
+  &\mapsto
+  \braket{R \cmid \asub{q}{K},\sigma \cmid S}
+  \\
+  \braket{M. \cmid \sigma \cmid K \cmid S}
+  &\mapsto
+  \braket{M \cmid \sigma \cmid M\clos{\sigma} ~ K \cmid S}
+  &\qquad
+  \braket{O \ask M \cmid \sigma \cmid K \cmid S}
+  &\mapsto
+  \braket{O \cmid \sigma \cmid K \cmid M \clos\sigma \cmid K \cmid S}
+\end{align*}
+
+Copattern-matching steps:
+\begin{align*}
+  \braket{x \to O \cmid \sigma \cmid N\clos{\sigma'}~K \cmid M \clos{\sigma_0} \cmid K_0 \cmid S}
+  &\mapsto
+  \braket{O \cmid \asub{x}{N\clos{\sigma'}}, \sigma \cmid K \cmid M \clos{\sigma_0} \cmid K_0 \cmid S}
+  \\
+  \braket{X \to O \cmid \sigma \cmid X~K \cmid M \clos{\sigma_0} \cmid K_0 \cmid S}
+  &\mapsto
+  \braket{O \cmid \sigma \cmid K \cmid M\clos{\sigma_0} \cmid K_0 \cmid S}
+  \\
+  \braket{\ask x \to N \cmid \sigma \cmid K \cmid M\clos{\sigma_0} \cmid K_0 \cmid S}
+  &\mapsto
+  \braket{N \cmid \asub{x}{M\clos{\sigma_0}}, \sigma \cmid K \cmid S}
+  \\
+  \braket{O \cmid \sigma \cmid K \cmid M\clos{\sigma_0} \cmid K_0 \cmid S}
+  &\mapsto
+  \braket{M \cmid \sigma_0 \cmid K_0 \cmid S}
+  \quad(\text{otherwise})
+\end{align*}
+\caption{Environment-based abstract machine for controlling compositional copatterns.}
+\label{fig:comp-copat-machine}
+\end{figure*}
+
+The abstract machines derived in \cref{sec:derive-copat,sec:control-copat} are
+based on substitution, which is a correct but notoriously slow implementation of
+static binding.  A more efficient implementation technique is to explicitly
+thread environments through the machine states and form closures when necessary
+to correctly implement static scope.  These kind of environment-based
+implementations are standard practice, but correctly managing static scope
+through closures can be tricky, its correctness is not as obvious.
+
+In the context of the derivations we have done so far, we could treat addition
+of environments and closures to an abstract machine as a complex monolithic
+program transformation.  Instead, here we stay within the incremental style, and
+perform a small, but obvious transformation at the right level of abstraction
+that makes environment-passing straightforward.  Then, turning the crank in the
+same way as before will mechanically generate a more efficient abstract machine
+with more confidence that it is correct by construction.
+
+\subsection{Closing over monolithic copatterns}
+\label{sec:closing-monolithic-copat}
+
+In order to thread environments efficiently, we start from the very beginning
+with the small-step semantics.  The main change takes place in the \hs|reduce|
+function as shown in \cref{fig:block-env-reduce-code}: the \hs|Redex| it
+processes will now contain an explicit environment representing some delayed
+substitutions that haven't been finished yet, and its \hs|Reduct| can now return
+a \hs|Closure| (pair of an open term and static environment) with potentially
+more delayed substitutions.
+
+The reasoning behind why this program transformation is correct with respect to
+\cref{fig:block-reduce-code} is that, if we eagerly perform all delayed
+substitutions before and after the environment-passing \hs|reduce| step, it is
+the same as the substitution-based \hs|reduce| step.  Since \hs|reduce| is a
+non-recursive stepping function, this property can be manually confirmed by
+manually checking each case.
+
+Since the new \hs|Redex| type now contains closures, we also have to update the
+decomposition functions \hs|decomp| and \hs|refocus|.  These now start with
+explicit closures and search for the next redex---which follows exactly the
+same code structure before, since the search never goes under binders---which
+produces a redex with explicit substitution and a question containing closures in
+place of raw terms.
+
+Putting this all together, we then get the environment-passing, small step
+evaluator \hs|eval| and main driver loop \hs|iter| shown in
+\cref{fig:block-env-reduce-code}---already in the in-place refocusing
+form---which corresponds to the original small-step interpreter up to performing
+the delayed substitutions.  The main correctness property about the top-level
+\hs|eval| function can be derived from each step of \hs|iter| by relating the
+above relationship of \hs|reduce| and \hs|refocus|.
+
+From here on out, there is nothing new.  Applying the same program
+transformations as before---CPS transformation, defunctionalization, loop
+fusion, compressing corridor transitions, deforesting, and other
+representational data structure changes---yields the environment-passing,
+tail-recursive interpreter in \cref{fig:block-env-machine-code}.
+
+We can continue on to derive a continuation-passing style transformation like
+before as well, using the same transformation steps---desugaring pattern
+matching, $\eta$-reduction, and immediately applying transition functions to all
+sub-expressions as soon as they are available.  The resulting code corresponds
+to a form of CPS transformation that is parameterized by a static environment
+that gets used to interpret both free and bound variables, in the style of many
+denotational semantics.  Rephrased as a translation function into the
+$\lambda$-calculus, this CPS is as follows:
+\begin{itemize}
+\item Translating terms $\den{M}[\sigma]$:
+\begin{align*}
+  \den{x}[\sigma] &= \sigma(x)
+  \\
+  \den{M~X}[\sigma] &= \lambda k.~ \den{M}[\sigma] ~ (X ~ k)
+  \\
+  \den{M~N}[\sigma] &= \lambda k.~ \den{M}[\sigma] ~ (\den{N}[\sigma], k)
+  \\
+  \den{M.}[\sigma] &= \lambda k.~ \den{M}[\sigma] ~ (\den{M}[\sigma], k)
+  \\
+  \den{\lambda\{\many{O}\}}[\sigma] &= \den{\many{O}}[\sigma]
+\end{align*}
+\item Translating lists of options $\den{\many{O}}[\sigma]$:
+\begin{align*}
+  \den{\varepsilon}[\sigma] &= \lambda k.~ k
+  \\
+  \den{L = M \mid \many{O}}[\sigma]
+  &=
+  \lambda k.~ \den{L \to M}[\sigma] ~ k ~ \den{\many{O}}[\sigma] ~ k
+\end{align*}
+\item Translating copattern-matching options $\den{L \to M}[\sigma]$:
+\begin{align*}
+  \den{\varepsilon \to N}[\sigma] &= \lambda q. \lambda f.~ \den{N}[\sigma]
+  \\
+  \den{x ~ L \to N}[\sigma] &= \Rec r = \lambda q. \lambda f. \lambda k.
+  \\[-1ex]
+  &\qquad
+  \Case k \Of
+  \begin{alignedat}[t]{2}
+    &(y, k') &&\to \den{L = N}[\subst{y}{x},\sigma] ~ q ~ f ~ k'
+    \\[-1ex]
+    &() &&\to r ~ q ~ f
+    \\[-1ex]
+    &k &&\to f ~ q
+  \end{alignedat}
+  \\
+  \den{X ~ L \to N}[\sigma] &= \Rec r = \lambda q. \lambda f. \lambda k.
+  \\
+  &\qquad
+  \Case k \Of
+  \begin{alignedat}[t]{2}
+    &(X ~ k') &&\to \den{L = N}[\sigma] ~ q ~ f ~ k'
+    \\[-1ex]
+    &() &&\to r ~ q ~ f
+    \\[-1ex]
+    &k &&\to f ~ q
+  \end{alignedat}
+\end{align*}
+\end{itemize}
+As a convention, when bound names are introduced on the right-hand side of a
+defining equation, they are always chosen to be distinct from the free variables
+of $\sigma$ to avoid accidental capture.
+
+\subsection{Closing over compositional copatterns}
+\label{sec:closing-compositional-copat}
+
+The refactorings used \cref{sec:refactor} to generalize the calculus for
+delimited and compositional copattern matching were orthogonal to the question
+about substitution versus environments as the semantics for static variables.
+Therefore, we can replay the changes to the environment and continuation-passing
+transformation in \cref{sec:closing-monolithic-copat} to derive a similar
+environment-based CPS translation of compositional copatterns:
+\begin{itemize}
+\item Translating responses $\den{R}[\sigma]$
+\begin{align*}
+  \den{M \ans R}[\sigma]
+  &=
+  \lambda s.~ \den{R}[\sigma] ~ \lambda q.~ \den{M}[\sigma] ~ q ~ s
+  \\
+  \den{q}[\sigma] &= \lambda s.~ s ~ \sigma(q)
+  \\
+  \den{\varepsilon}[\sigma] &= \lambda s.~ s ~ ()
+\end{align*}
+
+\item Translating terms $\den{M}[\sigma]$
+  \begin{align*}
+  \den{x}[\sigma] &= \sigma(x)
+  \\
+  \den{M~X}[\sigma] &= \lambda k.~ \den{M}[\sigma]~(X~k)
+  \\
+  \den{M~N}[\sigma] &= \lambda k.~ \den{M}[\sigma]~(\den{N}[\sigma], k)
+  \\
+  \den{M.}[\sigma] &= \lambda k.~ \den{M}[\sigma]~(\den{M}[\sigma], k)
+  \\
+  \den{\Raise}[\sigma] &= \lambda k.~ \lambda s. s ~ k
+  \\
+  \den{O \ask M}[\sigma] &= \lambda k.~ \den{O}[\sigma] ~ \den{M}[\sigma] ~ k
+  \\
+  \den{\ans q \to R}[\sigma] &= \lambda q.~ \den{R}[\sigma]
+\end{align*}
+
+\item Translating options $\den{O}[\sigma]$
+  \begin{align*}
+  \den{x \to O}[\sigma]
+  &=
+  \lambda f. \lambda k.
+  \begin{alignedat}[t]{2}
+    &\Case k \Of
+    \\[-1ex]
+    &\quad
+    (x, k') &&\to \den{O}[\sigma] ~ (\lambda q.~ f~(x, q)) ~ k'
+    \\[-1ex]
+    &\quad
+    k &&\to f ~ k
+  \end{alignedat}
+  \\
+  \den{X \to O}[\sigma]
+  &=
+  \lambda f. \lambda k.
+  \begin{alignedat}[t]{2}
+    &\Case k \Of
+    \\[-1ex]
+    &\quad
+    (X~k') &&\to \den{O}[\sigma] ~ (\lambda q.~ f~(X~q)) ~ k'
+    \\[-1ex]
+    &\quad
+    k &&\to f ~ k
+  \end{alignedat}
+  \\
+  \den{\ask x \to M}[\sigma] &= \lambda x.~ \den{M}[\sigma]
+\end{align*}
+\end{itemize}
+The corresponding Haskell embedding is shown in \cref{fig:nest-env-cps-code}.
+
+From here on out, we can turn the CPS transformation into an abstract machine
+using the same general derivation technique.  Applying standard code
+transformations---defunctionalization, delaying the application of translation
+functions until the last moment of application, $\eta$-expansion, and the use of
+nested pattern matching---gives the environment-passing, tail-recursive
+interpreter shown in \cref{fig:nest-env-machine-code}.
+
+To compare the difference of the low-level execution of the two calculi---one
+for monolithic matching of complex copatterns, and the other for compositional
+matching of copatterns with control---we can put them in more common forms.
+Rephrasing the Haskell implementations as stepping relations on machine
+configurations for both calculi are shown in
+\cref{fig:env-machine,fig:comp-copat-machine}.
+
+%%% Local Variables:
+%%% mode: LaTeX
+%%% TeX-master: "derive-copat"
+%%% End:

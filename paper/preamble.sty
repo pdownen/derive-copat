@@ -1,0 +1,229 @@
+\ProvidesPackage{preamble}
+\RequirePackage{xargs}
+
+%% Multi-line math spacing
+
+\newcommand{\spaceheight}{0pt}
+\newenvironment{spacing}[1][\spaceheight]{\setlength{\jot}{#1}}{\ignorespacesafterend}
+\newenvironment{squeeze}[1]{\addtolength{\jot}{#1}}{\ignorespacesafterend}
+\newenvironment{contiguous}[1][\linewidth]
+{\center\minipage{#1}}
+{\endminipage\endcenter\ignorespacesafterend}
+
+\newcommand{\ruleskip}{0.5ex}
+\newcommand{\bigruleskip}{1ex}
+\newcommand{\defskip}{0.5ex}
+
+\newcommand{\qqquad}{\qquad\quad}
+\newcommand{\qqqquad}{\qquad\qquad}
+
+%% Phrase shorthands
+
+\newcommand{\etal}{{\em et al. \/}}
+\newcommand{\etc}[1][]{{\em etc.#1}}
+\newcommand{\ie}{{\em i.e., \/}}
+\newcommand{\Ie}{{\em I.e., \/}}
+\newcommand{\viz}{{\em viz., \/}}
+\newcommand{\eg}{{\em e.g., \/}}
+\newcommand{\Eg}{{\em E.g., \/}}
+\newcommand{\ala}{\`a la \/}
+\newcommand{\aka}{{\em a.k.a \/}}
+
+%% Rewriting notation
+
+\newcommand{\from}{\leftarrow}
+\newcommand{\gives}{\Rightarrow}
+\newcommand{\takes}{\Leftarrow}
+\newcommand{\evalsto}{\Downarrow}
+
+\newcommand{\apart}{\mathrel\#}
+
+\newcommand{\vect}[2][]{{\vv{#2}}^{#1}}
+\newcommand{\many}[2][]{#2\overset{{}_{#1}}{...}}
+
+\newcommand{\asub}[2]{{#2}/{#1}}
+\newcommand{\smallsubs}[1]{{[{#1}]}}
+\newcommand{\smallsubst}[2]{\smallsubs{\asub{#1}{#2}}}
+\newcommand{\bigsubs}[1]{{\left[{#1}\right]}}
+\newcommand{\bigsubst}[2]{\bigsubs{\asub{#1}{#2}}}
+\newcommand{\subs}{\smallsubs}
+\newcommand{\subst}{\smallsubst}
+
+\newcommand{\clos}[1]{\{#1\}}
+
+\newcommand{\hole}{\square}
+
+\newcommand{\Cxt}{\operatorname{Cxt}}
+
+\newcommand{\insideout}{\mathop{\uparrow}}
+\newcommand{\outsidein}{\mathop{\downarrow}}
+
+%% Explicit substitution
+
+\newcommand{\abind}[2]{{#1}:={#2}}
+\newcommand{\smallbinds}[1]{{[{#1}]}}
+\newcommand{\smallbind}[2]{\smallbinds{\abind{#1}{#2}}}
+\newcommand{\bigbinds}[1]{{\left[{#1}\right]}}
+\newcommand{\bigbind}[2]{\bigsubs{\abind{#1}{#2}}}
+\newcommand{\binds}{\smallbinds}
+\newcommand{\bind}{\smallbind}
+
+\newcommand{\adefn}[2]{{#1}\mapsto{#2}}
+\newcommand{\smalldefns}[1]{{\{{#1}\}}}
+\newcommand{\smalldefn}[2]{\smalldefns{\adefn{#1}{#2}}}
+\newcommand{\bigdefns}[1]{{\left\{{#1}\right\}}}
+\newcommand{\bigdefn}[2]{\bigdefns{\adefn{#1}{#2}}}
+\newcommand{\defns}{\smalldefns}
+\newcommand{\defn}{\smalldefn}
+
+
+%% Denotational semantics notation
+
+\newcommand{\bbrak}[1]{\llbracket{#1}\rrbracket}
+\newcommand{\Bbrak}[1]{\left\llbracket{#1}\right\rrbracket}
+\newcommand{\Abrak}[1]{\langle\!\langle{#1}\rangle\!\rangle}
+\newcommand{\trans}{\densmall}
+\newcommand{\den}{\densmall}
+\newcommandx{\denbig}[3][1,3]{{\Bbrak{#2}^{#1}_{#3}}}
+\newcommandx{\densmall}[3][1,3]{{\bbrak{#2}^{#1}_{#3}}}
+
+%% Type theory notation
+
+\newcommand{\mt}{\bullet}
+\newcommand{\stoup}{\mathrel{;}}
+\newcommand{\sstoup}{\mathrel{{;}{;}}}
+\newcommand{\wstoup}{\stoup}
+\newcommand{\softstoup}{\mathrel{{;}{;}}}
+\newcommand{\hardstoup}{\mathrel{;}}
+
+\newcommand{\checked}{\Leftarrow}
+
+%% Syntax Styles
+
+\newcommand{\keywordstyle}[1]{\operatorname{\mathbf{#1}}}
+\newcommand{\newkeyword}[2]{\newcommand{#1}{\keywordstyle{#2}}}
+\newcommand{\renewkeyword}[2]{\renewcommand{#1}{\keywordstyle{#2}}}
+
+\newcommand{\operationstyle}[1]{\operatorname{#1}}
+% \newcommand{\operationstyle}[1]{\operatorname{\mathsf{#1}}}
+\newcommand{\newoperation}[2]{\newcommand{#1}{\operationstyle{#2}}}
+\newcommand{\renewoperation}[2]{\renewcommand{#1}{\operationstyle{#2}}}
+
+%% Pure Functional Syntax
+
+\newkeyword{\Let}{let}
+\newkeyword{\Val}{val}
+\newkeyword{\In}{in}
+\newkeyword{\Where}{where}
+\newkeyword{\Case}{case}
+\newkeyword{\Of}{of}
+\newkeyword{\Class}{class}
+
+\newoperation{\Inl}{inl}
+\newoperation{\Inr}{inr}
+\newoperation{\Fst}{fst}
+\newoperation{\Snd}{snd}
+
+\newoperation{\Pair}{pair}
+\newoperation{\Split}{split}
+
+\newcommand{\ccomment}[1]{\text{\it -{}- #1}}
+
+\newcommand{\comp}{\circ}
+\newcommand{\compq}{\diamond}
+
+\newkeyword{\Rec}{rec}
+
+%% Copatterns
+
+\newcommand{\ask}{\mathbin{?}}
+\newcommand{\ans}{\mathbin{!}}
+\newkeyword{\Next}{next}
+\newkeyword{\Raise}{raise}
+
+%% Sequent calculus
+
+\newcommand{\cmid}{\mathbin{\|}}
+\newcommand{\cut}[2]{\braket{#1 \cmid #2}}
+\newcommand{\rmu}{{\reflectbox{$\mu$}}}
+\newcommand{\tmu}{{\tilde{\mu}}}
+\newcommand{\tlam}{{\rlap{\hspace{3.5pt}\raisebox{-2.5pt}{$\widetilde{}$}}\lambda}}
+\newcommand{\rlam}{{\reflectbox{$\lambda$}}}
+
+%% Coloring
+
+\newcommand{\hi}[2][black!15]{{%
+\setlength{\fboxsep}{1pt}\kern-1pt%
+\mathchoice%
+{\colorbox{#1}{$\displaystyle#2$}}%
+{\colorbox{#1}{$\textstyle#2$}}%
+{\colorbox{#1}{$\scriptstyle#2$}}%
+{\colorbox{#1}{$\scriptscriptstyle#2$}}\kern-1pt}%
+}%
+\newcommand{\hitxt}[2][yellow!15]{{%
+\setlength{\fboxsep}{1pt}\kern-1pt%
+\colorbox{#1}{#2}%
+}}
+
+%% Listings
+
+\definecolor{kwcolor}{rgb}{0,.3,.7}
+\definecolor{cmtcolor}{rgb}{0.133,0.545,0.133}
+\definecolor{strcolor}{rgb}{0.75,0.49,0.07}
+
+\lstdefinelanguage[2010]{Haskell}{
+  keywords={},
+  morekeywords=[1]{data,type,newtype,
+    class,instance,family,deriving,
+    infix,infixr,infixl,
+    module,import,qualified,as,hiding,foreign},
+  morekeywords=[2]{where,let,in,case,of,do,if,then,else,forall},
+  keywordstyle=\bfseries\color{kwcolor},
+  commentstyle=\itshape\color{cmtcolor}
+  stringstyle={\color{strcolor}},
+}%[keywords,comments,strings]
+
+\lstdefinelanguage{Scheme}{
+  morekeywords=[1]{define, lambda, define-syntax, define-syntax-rule},
+  morekeywords=[2]{lambda, begin,
+    case, cond, do, else, for-each, if,
+    let*, let, let-syntax, letrec, letrec-syntax,
+    let-values, let*-values,
+    % and, or, not,
+    delay, force,
+    quasiquote, quote, unquote, unquote-splicing,
+    syntax, syntax-rules, syntax-case,
+    %eval, environment, query
+  },
+  morekeywords=[3]{import, export},
+  morekeywords=[1]{define*, define-object},
+  morekeywords=[2]{lambda*, object},
+  alsodigit=!\$\%&*+-./:<=>?@^_~,
+  sensitive=true,
+  morecomment=[l]{;},
+  morecomment=[s]{\#|}{|\#},
+  morestring=[b]",
+  keywordstyle=\bfseries\color{kwcolor},
+  commentstyle=\itshape\color{cmtcolor},
+  stringstyle={\color{strcolor}},
+  upquote=true,
+  breaklines=true,
+  breakatwhitespace=true,
+  literate=*{`}{{`}}{1},
+  showstringspaces=false
+}
+
+\lstnewenvironment{agda}[1][]
+{\lstset{language=Agda,#1}}
+{}
+\lstnewenvironment{haskell}[1][]
+{\lstset{language=[2010]Haskell,#1}}
+{}
+\lstnewenvironment{scheme}[1][]
+{\lstset{language=Scheme,#1}}
+{}
+
+\newcommand{\ag}[1][]{\lstinline[language=Agda,#1]}
+\newcommand{\hs}[1][]{\lstinline[language={[2010]Haskell},#1]}
+\newcommand{\scm}[1][]{\lstinline[language=Scheme,#1]}
+
