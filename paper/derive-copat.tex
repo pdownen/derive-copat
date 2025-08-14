@@ -46,6 +46,8 @@
 %%
 \documentclass[sigplan,screen]{acmart}
 
+\usepackage{microtype}
+
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{cmll}
@@ -67,12 +69,12 @@
 %% values in them; it is your responsibility as an author to replace
 %% the commands and values with those provided to you when you
 %% complete the rights form.
-\setcopyright{acmlicensed}
-\copyrightyear{2025}
-\acmYear{2025}
-\acmDOI{XXXXXXX.XXXXXXX}
+% \setcopyright{acmlicensed}
+% \copyrightyear{2025}
+% \acmYear{2025}
+% \acmDOI{XXXXXXX.XXXXXXX}
 %% These commands are for a PROCEEDINGS abstract or paper.
-\acmConference[OlivierFest '25]{OlivierFest}{October 14--15, 2025}{Singapore}
+% \acmConference[OlivierFest '25]{OlivierFest}{October 14--15, 2025}{Singapore}
 %%
 %%  Uncomment \acmBooktitle if the title of the proceedings is different
 %%  from ``Proceedings of ...''!
@@ -80,6 +82,19 @@
 %%\acmBooktitle{Woodstock '18: ACM Symposium on Neural Gaze Detection,
 %%  June 03--05, 2018, Woodstock, NY}
 % \acmISBN{978-1-4503-XXXX-X/2018/06}
+
+%% Copyright & metadata from publisher
+\setcopyright{cc}
+\setcctype{by}
+\acmDOI{10.1145/3759427.3760362}
+\acmYear{2025}
+\copyrightyear{2025}
+\acmISBN{979-8-4007-2150-2/25/10}
+\acmConference[OLIVIERFEST '25]{Proceedings of the Workshop Dedicated to Olivier Danvy on the Occasion of His 64th Birthday}{October 12--18, 2025}{Singapore, Singapore}
+\acmBooktitle{Proceedings of the Workshop Dedicated to Olivier Danvy on the Occasion of His 64th Birthday (OLIVIERFEST '25), October 12--18, 2025, Singapore, Singapore}
+\received{2025-06-10}
+\received[accepted]{2025-07-31}
+
 
 
 %%
@@ -169,7 +184,41 @@
 %% Please copy and paste the code instead of the example below.
 %%
 \begin{CCSXML}
+<ccs2012>
+   <concept>
+       <concept_id>10011007.10011006.10011008.10011024.10011036</concept_id>
+       <concept_desc>Software and its engineering~Patterns</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_idf>10003752.10010124.10010125.10010126</concept_id>
+       <concept_desc>Theory of computation~Control primitives</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_id>10011007.10010940.10010941.10010942.10010943</concept_id>
+       <concept_desc>Software and its engineering~Interpreters</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_id>10003752.10010124.10010131.10010134</concept_id>
+       <concept_desc>Theory of computation~Operational semantics</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_id>10003752.10003753.10010622</concept_id>
+       <concept_desc>Theory of computation~Abstract machines</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+ </ccs2012>
 \end{CCSXML}
+
+\ccsdesc[500]{Software and its engineering~Patterns}
+\ccsdesc[500]{Software and its engineering~Interpreters}
+% \ccsdesc[500]{Software and its engineering~Semantics}
+\ccsdesc[500]{Theory of computation~Control primitives}
+\ccsdesc[500]{Theory of computation~Operational semantics}
+\ccsdesc[500]{Theory of computation~Abstract machines}
 
 %%
 %% Keywords. The author(s) should pick words that accurately describe
@@ -186,9 +235,9 @@
 %   \label{fig:teaser}
 % \end{teaserfigure}
 
-\received{10 June 2025}
-\received[revised]{16 June 2025}
-% \received[accepted]{5 June 2009}
+% \received{10 June 2025}
+% \received[revised]{16 June 2025}
+% \received[accepted]{14 August 2025}
 
 %%
 %% This command processes the author and affiliation and title
@@ -249,17 +298,17 @@ like so:
 Suppose we want to override the diagonal elements---the first of the first,
 and the second of the second---with new values.  The function
 \scm|(diag x y z)| below returns \scm|x| as the very first, \scm|y| as the very
-last, and is the same as \scm|z| elsewhere:
+last, and is the same as \scm|z| elsewhere
 \begin{scheme}
 (define*
   [(((diag x y z) `fst) `fst) = x]
   [(((diag x y z) `snd) `snd) = y]
   [  (diag x y z)             = z])
 \end{scheme}
-So that \scm|(diag 50 60 quad)| represents $((50, 2), (3, 60))$.  Notice the use
+so that \scm|(diag 50 60 quad)| represents $((50, 2), (3, 60))$.  Notice the use
 of the third ``fall-through'' case taken whenever the first two cases don't
 apply.  Crucially, the context this fall-through case matches is \emph{less
-  specified} than the earlier cases, so \scm|(((diag quad 50 60)   `snd)  `fst)|
+  specified} than the earlier cases, so \scm|(((diag 50 60 quad)   `snd)  `fst)|
 should simplify to \scm|((quad `snd)  `fst)  = 3|.  Effectively, the above
 3-clause definition of \scm|diag| on two-by-two pairs is short-hand for the
 following expansion that manually elaborates all four cases:
@@ -281,21 +330,21 @@ that can be performed at run-time: multiple clauses can be stitched together
 vertically to handle undefined cases, and individual clauses can be extended
 horizontally to consider more context or side conditions before committing to a
 right-hand side.  The implementation \cite{CoScheme} gives a semantics based on
-macro expansion into a small subset of Scheme (\ie $\lambda$-calculus), but does
-not describe semantics in terms of the source-level language itself.
+macro expansion into a small subset of Scheme (\ie $\lambda$-calculus), but only
+describes the semantics via translation to the target language and not in terms
+of the source-level language itself.
 
 Thankfully, there is a general-purpose technique for converting one form of
 semantics into another!  Danvy's functional correspondence
 \cite{FunctionalCorrespondence} and syntactic correspondence
-\cite{SyntacticCorrespondence} shows how to use off-the-shelf program
+\cite{SyntacticCorrespondence} show how to use off-the-shelf program
 transformations to derive semantic artifacts---operational semantics, abstract
-machines, and continuation-passing style transformations---from one another in
-a way that is correct by construction.  In other words, we can (mostly
+machines, and continuation-passing style transformations---from one another in a
+way that is correct by construction.  In other words, we can (mostly
 mechanically) generate functional and correct operational semantics directly
-from the macro definition implementing copatterns in \cite{CoScheme}.  Yet, this
-is not just an exercise of turning the crank.  Doing so reveals connections
-between copattern matching with delimited control and a form of first-class
-handlers.
+from the macro definition implementing copatterns \cite{CoScheme}.  Yet, this is
+not just an exercise of turning the crank.  Doing so reveals connections between
+copattern matching with delimited control and a form of first-class handlers.
 
 Our journey today is a round-trip hike in the semantic park.  Starting from a
 simplified source copattern calculus with a straightforward operational
@@ -311,7 +360,7 @@ matching.  More specifically, our technical contributions are as follows:
   mechanical derivation based on functional code for copattern matching on
   contexts and a search to find the next redex.
 \item (\Cref{sec:refactor}) We refactor the monolithic copattern calculus into
-  more compositional primitives which give first-class control over
+  more compositional primitives that give first-class control over
   \begin{enumerate*}[(1)]
   \item the (delimited) calling context and
   \item the options for how to handle match failure.
@@ -321,11 +370,11 @@ matching.  More specifically, our technical contributions are as follows:
   monolithic one.
 \item (\Cref{sec:control-copat}) Going in reverse, we walk back from the CPS
   translation of compositional copatterns and derive the missing semantic
-  artifacts---an abstract machine and small-step operational semantics---which
+  artifacts---an abstract machine and small-step operational semantics---that
   correspond by construction to the CPS translation.
 \end{itemize}
 The main highlights of these derivations are shown here, illustrating the
-Haskell code which corresponds to the various semantic artifacts for copattern
+Haskell code that corresponds to the various semantic artifacts for copattern
 matching.  To find the detailed step-by-step process, which serves as their
 proof of correctness, see \url{https://github.com/pdownen/derive-copat}.
 
@@ -336,14 +385,14 @@ code, by infusing it with some techniques from the object-oriented paradigm.
 \section{Expressiveness of Copatterns}
 \label{sec:example}
 
-Let's consider how to write an interpreter for arithmetic expressions in Scheme.%
+To illustrate the expressiveness of copatterns, let's consider how they can be
+used to write an interpreter for arithmetic expressions in Scheme.%
 \footnote{The library defining the Scheme and Racket macros used in these
   examples can be found at \url{https://github.com/pdownen/CoScheme}.}%
-A simple way to represent expressions is as trees where the nodes start with
-the (symbolic) name of an operator followed by sub-expressions, and leaves are
-just number literals.  For a simple language with only addition and
-multiplication, we can represent the operation nodes by the patterns
-\scm|`(add ,l ,r)| and \scm|`(mul ,l ,r)|.%
+A simple way to represent expressions is as trees where the nodes start with the
+(symbolic) name of an operator followed by sub-expressions, and leaves are just
+number literals.  For a simple language, the trees representing addition and
+multiplication follow the patterns \scm|`(add ,l ,r)| and \scm|`(mul ,l ,r)|.%
 \footnote{This is \emph{quasiquote} syntax, where the backquote \scm|`...| means
   to interpret the expression literally as a data structure---leaving names as
   quoted symbols---except for internal ``unquoting'' form \scm|,l| which means
@@ -352,10 +401,10 @@ multiplication, we can represent the operation nodes by the patterns
   \scm|,l| inside of a backquote pattern is a wildcard variable that can match
   any value, which gets bound to \scm|l|.}
 %
-The arithmetic interpreter \scm|arith| can then be defined in Scheme as an
-object \cite{CoScheme} that (co)pattern matches on calls of the form
-\scm|(arith `eval e)| where the tag \scm|`eval| signals the request to evaluate
-a well-formed expression tree \scm|e|:
+The arithmetic interpreter \scm|arith| can then be defined as an object
+\cite{CoScheme} by (co)pattern matching on calls of the form
+\scm|(arith `eval e)| where \scm|`eval| signals the request to evaluate an
+expression tree \scm|e|:
 \begin{scheme}
 (define-object
   [(arith `eval n) (try-if (number? n))
@@ -367,10 +416,10 @@ a well-formed expression tree \scm|e|:
 
 (define expr0 `(add 1 (mul 2 3)))
 \end{scheme}
-The first clause contains a \emph{guard} \scm|try-if|, which is used to check
-that the variable \scm|n| is bound to a numeric value; if it's not, the next two
-clauses are tried, matching the two known operators.  All together, we can
-follow the equations recursively to evaluate \scm|(arith `eval expr0)  = 7|.
+The first clause contains a \emph{guard} \scm|try-if| used to check that the
+variable \scm|n| is bound to a numeric value; if not, the next two clauses are
+tried, matching the two operators.  Following these equations derives
+\scm|(arith `eval expr0)   = 7|.
 
 Now, what if we wanted to add a new expression node, such as (unary) negation
 \scm|`(neg ,e)|?  We can't just define a new function which handles the
@@ -521,8 +570,8 @@ are:
 \item \emph{Copattern $\lambda$s:} Instead of just taking a single parameter,
   $\lambda$-abstractions are built out of a sequence of \emph{options} ($O$) for
   mapping \emph{copatterns} ($L$) on the left-hand side to a new term on the
-  right-hand side.  Copatterns are a sequence of parameter abstractions ($x~L$)
-  and checks against specific index projections ($X~L$), until the empty
+  right-hand side.  Copatterns are a sequence of distinct parameter abstractions
+  ($x~L$) and checks against specific index projections ($X~L$), until the empty
   copattern ($\varepsilon$) signals that no more information is needed to decide
   to return the right-hand side.  The resolution of a copattern $\lambda$ is a
   complex process, modeled by the $\beta$ rule, that checks each copattern in
@@ -651,6 +700,7 @@ recursion:
 
 \begin{figure}
 \centering
+% \renewcommand{\basicstylesize}{\footnotesize}
 \begin{haskell}
 data Term i a
   = Var a
@@ -867,10 +917,11 @@ $\lambda$-objects (\hs|Obj [l :-> m, ...]| as $\lambda\{L \to M \mid \dots\}$).
 Copatterns are built using similar infix constructors and end with no-op
 \hs|Nop|, forming a stylized list that we can concatinate using \hs|<>|.  Of
 note, we abstract variable identifiers and projection indexes as generic types
-\hs|a| and \hs|i|, respectively, which will come in handy several times.
-Already, it gives us a representation of \hs|Question|s---contexts that might
-match copatterns---by filling the variables positions in a copattern with a
-\hs|Term i a|.  Being contexts, we can plug a term into a question via \hs|ask|.
+\hs|a| and \hs|i|, respectively, which will come in handy several times.  A
+special case of \hs|Copattern|s are \hs|Question|s---contexts that might match
+copatterns---given by filling the variables (left of \hs|:*|) in a copattern
+with a \hs|Term i a|.  Being contexts, we can plug a term into a question via
+\hs|ask|.
 
 Second, we have to implement a single step of reduction, which is shown in
 \cref{fig:block-reduce-code}.  The \hs|reduce| function takes a (potential)
@@ -891,9 +942,10 @@ both a redex as well as the question asked of it.  Following the syntactic
 correspondence methodology \cite{SyntacticCorrespondence}, we can derive a
 tail-recursive decomposition function from \hs|search| using standard program
 transformations: CPS transformation, defunctionalization
-\cite{DefinitionalInterpreters}, and compressing corridor transitions.  Along
-the way, it becomes clear that the evaluation contexts are isomorphic to the
-\hs|Question|s we need for reduction, which comes from the choice of
+\cite{DefinitionalInterpreters}, and compressing corridor transitions (\ie
+inlining and simplifying known function calls to partially-known arguments).
+Along the way, it becomes clear that the evaluation contexts are isomorphic to
+the \hs|Question|s we need for reduction, which comes from the choice of
 call-by-name evaluation order.  Swapping to the existing representation and
 applying the monoid laws gives \hs|decomp| in \cref{fig:block-decomp-code}.
 
@@ -902,15 +954,13 @@ Finally, the small-step interpreter is given in
 it, recomposes the result, and loops.  This algorithm is equivalent to the
 following relational small-step semantics, presented in terms of \emph{inside
   out} evaluation contexts and a $\mathit{comatch}$ function:
-
+\begin{alignat*}{2}
+  \mathit{Cont} &\ni{}& K
+  &::= \varepsilon
+  \mid N ~ K
+  \mid X ~ K
+\end{alignat*}
 \begin{gather*}
-  \begin{alignedat}{2}
-    \mathit{Cont} &\ni{}& K
-    &::= \varepsilon
-    \mid N ~ K
-    \mid X ~ K
-  \end{alignedat}
-  \\[1ex]
   \begin{aligned}
     (\delta)&&
     K[M.] &\mapsto K[M ~ M]
@@ -977,6 +1027,7 @@ following relational small-step semantics, presented in terms of \emph{inside
 
 \begin{figure}
 \centering
+\renewcommand{\basicstylesize}{\footnotesize}
 \begin{haskell}
 eval m = refocus m Nop
 
@@ -1196,17 +1247,19 @@ handle the non-structural recursion for under-application in \hs|comatch|):
 
 \begin{itemize}
 \item  Translating terms $\den{M}$:
-\begin{align*}
+\begin{gather*}
+\begin{aligned}
   \den{x} &= x
-  \\
-  \den{M~X} &= \lambda k.~ \den{M} ~ (X ~ k)
-  \\
-  \den{M~N} &= \lambda k.~ \den{M} ~ (\den{N}, k)
-  \\
+  &
   \den{M.} &= \lambda k.~ \den{M} ~ (\den{M}, k)
   \\
-  \den{\lambda\{\many{O}\}} &= \den{\many{O}}
-\end{align*}
+  \den{M~N} &= \lambda k.~ \den{M} ~ (\den{N}, k)
+  &
+  \den{M~X} &= \lambda k.~ \den{M} ~ (X ~ k)
+\end{aligned}
+  \\
+  \den{\lambda\{\many{O}\}} = \den{\many{O}}
+\end{gather*}
 \item  Translating lists of options $\den{\many{O}}$:
 \begin{align*}
   \den{\varepsilon} &= \lambda k.~ k
@@ -1362,7 +1415,7 @@ Giving the program some internal control over delimited questions amounts to a
 form of call-by-name delimited control.  That is to say, a term can abstract
 over a given question by giving it a name $q$ in $\ans q \to R$, where $R$ is a
 \emph{response} that explains how to continue, which could be asking the same
-question $M \ans q$, a different one $M \ans q'$, or any empty one
+question $M \ans q$, a different one $M \ans q'$, or a now explicitly empty
 $M \ans \varepsilon$.  Instead of asking, a response could also raise an
 unanswered question itself, to be handled at a higher level.
 
@@ -1605,7 +1658,7 @@ continuation as follows:
   &=
   \lambda f. \lambda k.
   \Case k \Of
-  \\
+  \\[-0.5ex]
   &\qquad
   \begin{alignedat}[t]{2}
     &(x, k') &&\to Opt'\den{O} ~ (\lambda q.~ f ~ (x, q)) ~ k'
@@ -1617,7 +1670,7 @@ continuation as follows:
   &=
   \lambda f. \lambda k.
   \Case k \Of
-  \\
+  \\[-0.5ex]
   &\qquad
   \begin{alignedat}[t]{2}
     &(X ~ k') &&\to Opt'\den{O} ~ (\lambda q.~ f ~ (X ~ q)) ~ k'
@@ -2254,11 +2307,11 @@ reinterpreted as the following corresponding small-step reduction relation:
   \\
   ((x \to O) \ask M) ~ N
   &\mapsto
-  O\subst{x}{N} \ans (M ~ N)
+  O\subst{x}{N} \ask (M ~ N)
   \\
   ((X \to O) \ask M) ~ X
   &\mapsto
-  O \ans (M ~ X)
+  O \ask (M ~ X)
   \\
   (P \ask M) ~ X
   &\mapsto
@@ -2355,11 +2408,26 @@ composition, such as extracting a type system from the CPS~\cite{FunctionalAbstr
 %% (and NOT an unnumbered section). This ensures the proper
 %% identification of the section in the article metadata, and the
 %% consistent spelling of the heading.
-% \begin{acks}
-% To Robert, for the bagels and explaining CMYK and color spaces.
-% \end{acks}
+\begin{acks}
+  I want to thank Olivier Danvy for so generously devoting his time,
+  encouragement, and teaching while I was still an early Ph.D. student.  While
+  on an extended visit to the University of Oregon, Olivier gave a week-long
+  hands-on tutorial on his technique for inter-deriving semantics.  Soon
+  thereafter, I realized this was the perfect solution to a difficult problem on
+  the semantics of the sequent calculus that had been lingering for over a year,
+  which directly led to my second publication~\cite{ADHNS2012CCSC}.  Now, many
+  years later, I had been puzzling over a similar problem of trying to capture
+  the direct-style operational semantics for composing copatterns, which eluded
+  me for quite some time.  Only after thinking of how I could contribute to
+  OlivierFest, did I realize ``Aha!  This is the perfect problem to fix with the
+  technique Olivier taught me!''  This paper is a celebration and revival of
+  that early influence.
 
-\clearpage
+  This material is based upon work supported by the National Science Foundation
+  under Grant No. 2245516.
+\end{acks}
+
+% \clearpage
 
 %%
 %% The next two lines define the bibliography style to be used, and
@@ -2369,7 +2437,7 @@ composition, such as extracting a type system from the CPS~\cite{FunctionalAbstr
 
 %%
 %% If your work has an appendix, this is the place to put it.
-% \clearpage
+\clearpage
 \appendix
 
 \input{sec_environments}
