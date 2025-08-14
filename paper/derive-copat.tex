@@ -435,7 +435,8 @@ Now, what if we wanted to add a new expression node, such as (unary) negation
 \end{scheme}
 Certain special cases will work.  Passing in an expression from the old syntax
 will produce the correct answer---like \scm|(arith-wrong `eval expr0)    = 7|---or
-limited uses of negation---like \scm|(arith-wrong `eval `(neg 5))    = -5|.
+limited uses of negation % Prevent --- from overflowing text box
+---like \scm|(arith-wrong `eval `(neg 5))    = -5|.
 However, examples where old and new operations are nested within one another
 produce an error, like \scm|(arith-wrong `eval expr1)|.
 
